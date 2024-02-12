@@ -9,22 +9,22 @@
   <head>
     <meta charset="utf-8">
 
-<!-- begin _includes/seo.html --><title>Site Title</title>
-<meta name="description" content="An amazing website.">
+<!-- begin _includes/seo.html --><title>Data Adventures</title>
+<meta name="description" content="In this blog I will write about my adventures related to software development, statistics, data science, research, and similar. Will cover both hobby projects and actual work in the public domain.">
 
 
-  <meta name="author" content="Your Name">
+  <meta name="author" content="Aleksejs Fomins">
   
 
 
 <meta property="og:type" content="website">
-<meta property="og:locale" content="en_US">
-<meta property="og:site_name" content="Site Title">
-<meta property="og:title" content="Site Title">
+<meta property="og:locale" content="en_GB">
+<meta property="og:site_name" content="Data Adventures">
+<meta property="og:title" content="Data Adventures">
 <meta property="og:url" content="http://localhost:4000/">
 
 
-  <meta property="og:description" content="An amazing website.">
+  <meta property="og:description" content="In this blog I will write about my adventures related to software development, statistics, data science, research, and similar. Will cover both hobby projects and actual work in the public domain.">
 
 
 
@@ -51,7 +51,7 @@
     "@context": "https://schema.org",
     
       "@type": "Person",
-      "name": "Your Name",
+      "name": "Aleksejs Fomins",
       "url": "http://localhost:4000/"
     
   }
@@ -67,7 +67,7 @@
 
 
 
-  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="Site Title Feed">
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="Data Adventures Feed">
 
 
 <!-- https://t.co/dKP3o1e -->
@@ -82,6 +82,10 @@
 <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css"></noscript>
 
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+  
 
 
     <!-- start custom head snippets -->
@@ -109,8 +113,8 @@
       <nav id="site-nav" class="greedy-nav">
         
         <a class="site-title" href="/">
-          Site Title
-          
+          Data Adventures
+          <span class="site-subtitle">Version 0.1</span>
         </a>
         <ul class="visible-links"><li class="masthead__menu-item">
               <a href="https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/">Quick-Start Guide</a>
@@ -141,14 +145,20 @@
 <div itemscope itemtype="https://schema.org/Person" class="h-card">
 
   
+    <div class="author__avatar">
+      <a href="http://localhost:4000/">
+        <img src="/assets/images/bio-photo.jpg" alt="Aleksejs Fomins" itemprop="image" class="u-photo">
+      </a>
+    </div>
+  
 
   <div class="author__content">
     <h3 class="author__name p-name" itemprop="name">
-      <a class="u-url" rel="me" href="http://localhost:4000/" itemprop="url">Your Name</a>
+      <a class="u-url" rel="me" href="http://localhost:4000/" itemprop="url">Aleksejs Fomins</a>
     </h3>
     
       <div class="author__bio p-note" itemprop="description">
-        <p>I am an <strong>amazing</strong> person.</p>
+        <p>Data Scientist. Singer. Gaming Enthusiast</p>
 
       </div>
     
@@ -159,22 +169,14 @@
     <ul class="author__urls social-icons">
       
         <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
-          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name" class="p-locality">Somewhere</span>
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name" class="p-locality">Zürich, Switzerland</span>
         </li>
       
 
       
         
           
-        
-          
-        
-          
-        
-          
-        
-          
-        
+            <li><a href="mailto:fomins.aleksejs@gmail.com" rel="nofollow noopener noreferrer me"><i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span></a></li>
           
         
       
@@ -256,6 +258,86 @@
 
 <div class="entries-list">
   
+    
+
+
+
+<div class="list__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/meta/making-this-blog/" rel="permalink">Making this blog
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          4 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">In this first post, I would like to give a detailed summary of the engineering behind this blog.
+</p>
+  </article>
+</div>
+
+  
+    
+
+
+
+<div class="list__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/edge%20case/edge-case-nested-and-mixed-lists/" rel="permalink">Edge Case: Nested and Mixed Lists
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          less than 1 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">Nested and mixed lists are an interesting beast. It’s a corner case to make sure that
+</p>
+  </article>
+</div>
+
+  
 </div>
 
 
@@ -281,15 +363,11 @@
     
       
         
-      
+          <li><a href="https://github.com/aleksejs-fomins" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
         
       
         
-      
-        
-      
-        
-      
+          <li><a href="https://stackexchange.com/users/4841903/aleksejs-fomins?tab=accounts" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-stack-overflow" aria-hidden="true"></i> StackExchange</a></li>
         
       
     
@@ -300,7 +378,7 @@
   </ul>
 </div>
 
-<div class="page__footer-copyright">&copy; 2024 Your Name. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+<div class="page__footer-copyright">&copy; 2024 Aleksejs Fomins. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
 
       </footer>
     </div>
