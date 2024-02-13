@@ -5,6 +5,15 @@ categories:
 tags:
   - Jekyll
   - Github
+author_profile: false
+header:
+  overlay_color: "#000"
+  overlay_filter: "0.5"
+  overlay_image: /assets/images/unsplash-image-1.jpg
+  actions:
+    - label: "Learn More"
+      url: "/terms/"
+  caption: "Photo credit: [**Unsplash**](https://unsplash.com)"
 ---
 
 In this first post, I would like to give a detailed summary of the engineering behind this blog.
@@ -59,6 +68,14 @@ head_scripts:
 Here's a Gauss' law to celebrate this achievement
 
 $$\iiint_V \nabla \cdot \vec{E}dV = \oint_S \vec{E}\cdot d\vec{S} $$
+
+Here's a list of other minor optimizations I have done by editing the config file:
+* Selected the "dirt" theme
+* Added a path to the profile picture
+* Added the name of the blog
+* Added my bio, and a few links to other pages, such as my github and stackexchange.
+
+By the way, I had noticed that the theme was pulling the logos of the websites for links from [this awesome website](https://fontawesome.com/v5/search?q=stackexchange&o=r) as font characters. Since StackExchange was not in the theme by default, it just took a few clicks on the FontAwesome website to find the correct logo and import the corresponding text.
 
 
 

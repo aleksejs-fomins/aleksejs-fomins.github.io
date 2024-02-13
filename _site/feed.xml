@@ -1,4 +1,233 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-02-12T16:38:49+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Data Adventures</title><subtitle>In this blog I will write about my adventures related to software development, statistics, data science, research, and similar. Will cover both hobby projects and actual work in the public domain.</subtitle><author><name>Aleksejs Fomins</name></author><entry><title type="html">Making this blog</title><link href="http://localhost:4000/meta/making-this-blog/" rel="alternate" type="text/html" title="Making this blog" /><published>2024-02-10T00:00:00+01:00</published><updated>2024-02-10T00:00:00+01:00</updated><id>http://localhost:4000/meta/making-this-blog</id><content type="html" xml:base="http://localhost:4000/meta/making-this-blog/"><![CDATA[<p>In this first post, I would like to give a detailed summary of the engineering behind this blog.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-02-13T15:18:07+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Data Adventures</title><subtitle>In this blog I will write about my adventures related to software development, statistics, data science, research, and similar. Will cover both hobby projects and actual work in the public domain.</subtitle><author><name>Aleksejs Fomins</name></author><entry><title type="html">Optimizing an automated sudoku solver in Python</title><link href="http://localhost:4000/meta/sudoku-solver/" rel="alternate" type="text/html" title="Optimizing an automated sudoku solver in Python" /><published>2024-02-13T00:00:00+01:00</published><updated>2024-02-13T00:00:00+01:00</updated><id>http://localhost:4000/meta/sudoku-solver</id><content type="html" xml:base="http://localhost:4000/meta/sudoku-solver/"><![CDATA[<p>As an avid sudoku enthusiast, and a fan of <a href="https://www.youtube.com/c/CrackingTheCryptic">Cracking The Cryptic</a>, I frequently find myself needing a little boost from my external brain. So, why not use this as an opportunity to exercise some coding optimization skills as well. In this post, I will cover the generic sudoku solver. In the future posts, I will cover using quick code snippets to brute force through some smaller sub-problems.</p>
+
+<h2 id="the-setting">The Setting</h2>
+
+<p>Sudoku is an <a href="http://www.cs.ox.ac.uk/people/paul.goldberg/FCS/sudoku.html">NP-complete</a> problem, which means that general-purpose solvers have to resort to brute-force search to solve them. Since the goal of this post is to practice some optimization, we will write a sudoku solver from scratch, and attempt to optimize it along the way.</p>
+
+<h2 id="input-data">Input Data</h2>
+
+<p>In order to test the performance of our solver, I have copied 5 examples of classical sudoku from sudoku.com website, and stored them in a basic text files. As we will later see, we would optimally need far more examples to make sure that our solvers work well on average, but this will do for now. Our text files are simple 9x9 grids, where unfilled spaces are marked with a space character, and filled spaces are digits. We can write a simple reader for such files as follows</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">with</span> <span class="nf">open</span><span class="p">(</span><span class="sh">'</span><span class="s">examples/grid_easy.dat</span><span class="sh">'</span><span class="p">,</span> <span class="sh">'</span><span class="s">r</span><span class="sh">'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="nf">readlines</span><span class="p">()</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="p">.</span><span class="nf">strip</span><span class="p">(</span><span class="sh">'</span><span class="se">\n</span><span class="sh">'</span><span class="p">).</span><span class="nf">replace</span><span class="p">(</span><span class="sh">'</span><span class="s"> </span><span class="sh">'</span><span class="p">,</span> <span class="sh">'</span><span class="s">0</span><span class="sh">'</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">array</span><span class="p">([[</span><span class="nf">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">])</span>
+</code></pre></div></div>
+<p>In the end we get a 2D Numpy array of integers, where empty cells are marked as zeroes.</p>
+
+<h2 id="constraints">Constraints</h2>
+
+<p>The family of sudoku puzzles are all about filling in missing digits in a grid, while keeping a certain set of constraints satisfied. In a classical sudoku, the digits in any row, column or any of the nine 3x3 boxes may not repeat. While it is easily possible to hard-code these constraints, it is my dream to ultimately extend this solver to be able to handle a wide variety of different sudoku challenges, and thus I would like to keep it as generic as possible. Thus, we will define a generic constraint class.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="n">typing</span> <span class="kn">import</span> <span class="n">Protocol</span>
+
+<span class="k">class</span> <span class="nc">GenericConstraint</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="n">np</span><span class="p">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+      <span class="bp">...</span>
+
+    <span class="k">def</span> <span class="nf">idxs_affected</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="p">.</span><span class="n">ndarray</span><span class="p">:</span>
+      <span class="bp">...</span>
+</code></pre></div></div>
+
+<p>Here, the <code class="language-plaintext highlighter-rouge">test</code> function would take a grid, and tell us if the constraint is satisfied, whereas <code class="language-plaintext highlighter-rouge">idxs_affected</code> would tell us the indices of the grid cells that the current constraint is going to use for its test. We don’t need the latter just yet, but may come in handy later.</p>
+
+<p>For example, the row constraint from classical sudoku could look something like this</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">HorizontalSudokuConstraint</span><span class="p">(</span><span class="n">GenericConstraint</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">idxRow</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">idxRow</span> <span class="o">=</span> <span class="n">idxRow</span>
+
+    <span class="k">def</span> <span class="nf">idxs_affected</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">,</span> <span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="p">.</span><span class="nf">full</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">idxRow</span><span class="p">),</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">digits</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[</span><span class="n">self</span><span class="p">.</span><span class="n">idxRow</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nf">are_numbers_unique</span><span class="p">(</span><span class="n">digits</span><span class="p">[</span><span class="n">digits</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+</code></pre></div></div>
+<p>We would be initializing the constraint by telling it which row it applies to. The test would extract all of the digits of that row from the grid and check if they are all different. The <code class="language-plaintext highlighter-rouge">idxs_affected</code> would simply return the indices of all cells in that row.</p>
+
+<p>We can now mix and match different constraints in order to define different sudoku problems. Here, we will consider constructing a classical 9x9 sudoku problem. However, it is easy to see that this can be generalized to other types of sudoku, such as <a href="https://sudoku.com/killer">killer sudoku</a>.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">ClassicalProblem</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">constraints</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">iRow</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
+            <span class="n">self</span><span class="p">.</span><span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cs</span><span class="p">.</span><span class="nc">VerticalSudokuConstraint</span><span class="p">(</span><span class="n">iRow</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">iCol</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="mi">9</span><span class="p">):</span>
+            <span class="n">self</span><span class="p">.</span><span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cs</span><span class="p">.</span><span class="nc">HorizontalSudokuConstraint</span><span class="p">(</span><span class="n">iCol</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">iRow</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">iCol</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">]:</span>
+                <span class="n">self</span><span class="p">.</span><span class="n">constraints</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cs</span><span class="p">.</span><span class="nc">BoxSudokuConstraint</span><span class="p">(</span><span class="n">iRow</span><span class="p">,</span> <span class="n">iCol</span><span class="p">)]</span>
+</code></pre></div></div>
+<p>So, our problem class is nothing more than a collection of different constraints that apply to this problem. For example, in a classical sudoku we have 9 horizontal constraints, 9 vertical constraints, and 9 box constraints.</p>
+
+<h2 id="initial-algorithm">Initial algorithm</h2>
+
+<p>The most naive solver would go over all possible combinations of digit positioning in the grid, and test if it matches. The number of attempts such a solver would do is \(9^m\), where \(m\) is the number of empty grid cells. Since the number of empty cells can be as large as 70, we are looking at \(9^{70} \approx 10^{67}\) iterations! Even if we do something smarter and only go over valid permutations of the available digits, this will still require years to complete. We have to take a different approach from the start.</p>
+
+<p>One important observation is that it is not necessary to see all of the digits to prove that the solution does not work. Finding just one wrong digit (such as two of the same digit in the same row) is sufficient to discard the solution, regardless of the values of all the other digits. Thus, we will be filling in digits one at a time. The generic algorithm would be as follows</p>
+
+<ol class="notice--primary">
+  <li>Find all unfilled digits and enumerate them</li>
+  <li>Start with the first unfilled digit, setting the current digit index to 0</li>
+  <li>If the current digit index is -1, exit the loop, we are done</li>
+  <li>Increment the current digit by 1, or set it to 1 if it is unfilled</li>
+  <li>If the current digit is 10, then unset the current digit, decrease the digit index by 1, and go back to 3.</li>
+  <li>Test all constraints. If any constraints fail, continue to 4.</li>
+  <li>If all constraints pass, increment the digit index by 1</li>
+  <li>If the digit index is equal to the number of unfilled digits, we have found a fitting solution. Output the solution, and decrease the digit index by 1.</li>
+  <li>Return to 3.</li>
+</ol>
+
+<p>The example solver class would look somethinkg like the example below. The initializer finds the empty cells and arranges them in a 1D array to be filled in a sequence later. It also constructs a mapping between the 1D and 2D representations of the missing cells. The helper function <code class="language-plaintext highlighter-rouge">test</code> tests all of the constraints of the problem. The helper function <code class="language-plaintext highlighter-rouge">set</code> fills in a digit into the 1D array of the missing cells, and also in the corresponding missing cell in the 2D grid.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">BruteSolverV1</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">,</span> <span class="n">problem</span><span class="p">:</span> <span class="n">ClassicalProblem</span><span class="p">):</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">copy</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">problem</span> <span class="o">=</span> <span class="n">problem</span>
+
+        <span class="c1"># Step 1: Identify coordinates of all unfilled digits
+</span>        <span class="n">self</span><span class="p">.</span><span class="n">idxsRow</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">idxsCol</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">where</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">grid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">nEmpty</span> <span class="o">=</span> <span class="nf">len</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">idxsRow</span><span class="p">)</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">empty1D</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">zeros_like</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">idxsRow</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">constr</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">problem</span><span class="p">.</span><span class="n">constraints</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">constr</span><span class="p">.</span><span class="nf">test</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">grid</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">idxEmpty1D</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">empty1D</span><span class="p">[</span><span class="n">idxEmpty1D</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">grid</span><span class="p">[</span><span class="n">self</span><span class="p">.</span><span class="n">idxsRow</span><span class="p">[</span><span class="n">idxEmpty1D</span><span class="p">],</span> <span class="n">self</span><span class="p">.</span><span class="n">idxsCol</span><span class="p">[</span><span class="n">idxEmpty1D</span><span class="p">]]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+        <span class="n">idxEmpty1D</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">idxEmpty1D</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># First termination condition: if we are pointing at an index -1, finish. The loop has been exhausted
+</span>                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">idxEmpty1D</span> <span class="o">==</span> <span class="n">self</span><span class="p">.</span><span class="n">nEmpty</span><span class="p">:</span>
+                <span class="c1"># We have reached a plausible solution. Print it, and continue the loop
+</span>                <span class="nf">print</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">grid</span><span class="p">)</span>
+                <span class="n">idxEmpty1D</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Progressively increment the value of this cell, until a fitting value is found or all have failed
+</span>            <span class="n">fits</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">for</span> <span class="n">newVal</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">empty1D</span><span class="p">[</span><span class="n">idxEmpty1D</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span>
+                <span class="c1"># Set this value and test fitness
+</span>                <span class="n">self</span><span class="p">.</span><span class="nf">set</span><span class="p">(</span><span class="n">idxEmpty1D</span><span class="p">,</span> <span class="n">newVal</span><span class="p">)</span>
+                <span class="n">fits</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">test</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">fits</span><span class="p">:</span>
+                    <span class="c1"># If this value fits, keep it, and continue fitting the next cell
+</span>                    <span class="n">idxEmpty1D</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">break</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">fits</span><span class="p">:</span>
+                <span class="c1"># If no remaining values fit, clear this square and revert to increasing the previous one
+</span>                <span class="n">self</span><span class="p">.</span><span class="nf">set</span><span class="p">(</span><span class="n">idxEmpty1D</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">idxEmpty1D</span> <span class="o">-=</span> <span class="mi">1</span>
+
+</code></pre></div></div>
+
+<h2 id="putting-it-all-together">Putting it all together</h2>
+
+<p>Now that we have implemented all of the parts in their corresponding classes, our control panel class is going to be tiny</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="n">readers</span> <span class="kn">import</span> <span class="n">classical_reader</span>
+<span class="kn">from</span> <span class="n">problems</span> <span class="kn">import</span> <span class="n">ClassicalProblem</span>
+<span class="kn">from</span> <span class="n">solvers</span> <span class="kn">import</span> <span class="n">BruteSolverV1</span>
+
+<span class="n">grid</span> <span class="o">=</span> <span class="nf">classical_reader</span><span class="p">(</span><span class="sh">'</span><span class="s">examples/grid_easy.dat</span><span class="sh">'</span><span class="p">)</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="nc">ClassicalProblem</span><span class="p">()</span>
+
+<span class="n">bs</span> <span class="o">=</span> <span class="nc">BruteSolverV1</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">problem</span><span class="p">)</span>
+<span class="n">bs</span><span class="p">.</span><span class="nf">solve</span><span class="p">()</span>
+</code></pre></div></div>
+
+<h2 id="optimization">Optimization</h2>
+
+<p>The vigilant reader certainly would have spotted an obvious optimization by now. Not all constraints apply to all digit. For example, in a classical sudoku, exactly 3 constraints apply to each cell - the corresponding row, column and box constraints. If we can figure out what constraints apply to what cells, we can test only those constraints when changing any one digit. So, instead of 27 constraints, we now have 3 - a savings of a factor of 9 on the iteration part! For this, we need two things.</p>
+
+<p>First, we need to find what the constraint indices that affect each cell. For this, we will use the <code class="language-plaintext highlighter-rouge">idxs_affected</code> function that we implemented before. We will find the cells affected by each constraint, then “invert” that list to find what constraints is each of the cells affected by. We add the following to the solver initializer</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># For each constraint, get cell indices that are affected by it
+# Make a temporary map from 2D index to 1D index
+</span><span class="n">idxs2Dto1D</span> <span class="o">=</span> <span class="p">{(</span><span class="n">iRow</span><span class="p">,</span> <span class="n">iCol</span><span class="p">):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">iRow</span><span class="p">,</span> <span class="n">iCol</span><span class="p">)</span> <span class="ow">in</span> <span class="nf">enumerate</span><span class="p">(</span><span class="nf">zip</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">idxsRow</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">idxsCol</span><span class="p">))}</span>
+
+<span class="n">constr1Didxs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">constr</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">problem</span><span class="p">.</span><span class="n">constraints</span><span class="p">:</span>
+    <span class="n">xIdxs</span><span class="p">,</span> <span class="n">yIdxs</span> <span class="o">=</span> <span class="n">constr</span><span class="p">.</span><span class="nf">idxs_affected</span><span class="p">()</span>
+    <span class="n">constr1Didxs</span> <span class="o">+=</span> <span class="p">[[</span><span class="n">idxs2Dto1D</span><span class="p">[(</span><span class="n">iRow</span><span class="p">,</span> <span class="n">iCol</span><span class="p">)]</span> <span class="k">for</span> <span class="n">iRow</span><span class="p">,</span> <span class="n">iCol</span> <span class="ow">in</span> <span class="nf">zip</span><span class="p">(</span><span class="n">xIdxs</span><span class="p">,</span> <span class="n">yIdxs</span><span class="p">)</span> <span class="nf">if </span><span class="p">(</span><span class="n">iRow</span><span class="p">,</span> <span class="n">iCol</span><span class="p">)</span> <span class="ow">in</span> <span class="n">idxs2Dto1D</span><span class="p">]]</span>
+
+<span class="c1"># For each empty cell, find indices of constraints that affect it
+</span><span class="n">self</span><span class="p">.</span><span class="n">empty1DconstrIdxs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">iCell</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">nEmpty</span><span class="p">):</span>
+    <span class="n">self</span><span class="p">.</span><span class="n">empty1DconstrIdxs</span> <span class="o">+=</span> <span class="p">[[</span><span class="n">iConstr</span> <span class="k">for</span> <span class="n">iConstr</span><span class="p">,</span> <span class="n">idxs</span> <span class="ow">in</span> <span class="nf">enumerate</span><span class="p">(</span><span class="n">constr1Didxs</span><span class="p">)</span> <span class="k">if</span> <span class="n">iCell</span> <span class="ow">in</span> <span class="n">idxs</span><span class="p">]]</span>
+</code></pre></div></div>
+
+<p>Second, the <code class="language-plaintext highlighter-rouge">test</code> function is now uses the cell index as an argument, and tests only the relevant cells</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">idxEmpty1D</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="c1"># Only test the constraints that are relevant for this cell
+</span>    <span class="k">for</span> <span class="n">idxConstr</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">empty1DconstrIdxs</span><span class="p">[</span><span class="n">idxEmpty1D</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">problem</span><span class="p">.</span><span class="n">constraints</span><span class="p">[</span><span class="n">idxConstr</span><span class="p">].</span><span class="nf">test</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">grid</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">return</span> <span class="bp">True</span>
+</code></pre></div></div>
+
+<h2 id="experiment">Experiment</h2>
+
+<p>There is another optimization I would like to do, but I am not quite sure how to go about it. It surely matters in what order our solver attempts to fill in the digits, but it is not obvious to me what the optimal order would be, or whether there is an optimal order. I am convinced that some heuristics can do better than others, and even if we cannot arrive at an optimal solution, we can try to get a good one. Thus, we will conduct an experiment.</p>
+
+<p>Firstly, we will attempt to fill the digits in a random order. The order of the digits will be selected at the start for the solver, and kept throughout the solution. We will run this a few times and see what solution times we get for different sudoku examples. The implementation of this solution can be found in the full code at the end of this post. In short, we will require an additional mapping between the original 1D sequence of empty cells, and the order in which we will actually visit them. In this case, the new order is a random permutation.</p>
+
+<p>Secondly, I want to try a heuristic which naively seems like it could work. Specifically, we can initially go over all empty cells in the grid and check how many options satisfy the constraints. Then visit the cells in the order of increasing number of options (visiting the most constrained cells first). On the first sight it makes sense - we start with less possible branches, and visit the less constrained cells once a large fraction of the grid has already been filled in. It is what a human would do. Again, the implementation of this is quite simple, compared to what we have already done. It can be found in the full code.</p>
+
+<h2 id="results">Results</h2>
+
+<p>So, we have 4 different algorithms</p>
+<ul>
+  <li><strong>BruteSolverV1</strong> - the original solver</li>
+  <li><strong>BruteSolverV2</strong> - like V1, but using less constraints</li>
+  <li><strong>BruteSolverV3</strong> - like V2, but filling numbers in a random order</li>
+  <li><strong>BruteSolverV4</strong> - like V2, but filling numbers in the order of increasing number of options (in the initial puzzle).</li>
+</ul>
+
+<p>We also have 5 different example sudoku puzzles</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">grid_easy.dat</code></li>
+  <li><code class="language-plaintext highlighter-rouge">grid_easy2.dat</code></li>
+  <li><code class="language-plaintext highlighter-rouge">grid_medium.dat</code></li>
+  <li><code class="language-plaintext highlighter-rouge">grid_medium2.dat</code></li>
+  <li><code class="language-plaintext highlighter-rouge">grid_hard.dat</code></li>
+</ul>
+
+<p>In the below table I show the average runtime in seconds for each solver and each problem. For the V3, I give the 90% confidence interval out of 50 different runs.</p>
+
+<p>We can make the following observations:</p>
+<ul>
+  <li>V2 indeed performs better than V1, but the improvement factor is less than 9, since we also spend time on reading the puzzle from file and initializing the solver.</li>
+  <li>Somewhat surprisingly, V3 performs orders of magnitude worse than V2, or even V1. So the initial arrangement of doing empty cells in sequence is not random at all. It seems that the proximity of cells matters for the order the are filled in.</li>
+  <li>V4 is far better than V2 for the hard problem, but far worse for the medium problem. We are clearly onto something with this heuristic, but it is also clear that this heuristic is not the right one.</li>
+</ul>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>We were able to write a sudoku solver can solve a hard classical sudoku puzzles in 10s, which is feasible for daily use. Yay!</p>
+
+<p>The job is certainly not finished yet. We need to figure out the secret of the order of brute-forcing, try some other techniques, and maybe some other sudoku like killer sudoku! Here are the a few ideas I would try from the top of my head:</p>
+<ul>
+  <li>Try an adaptive ordering, where, after filling each digit, we find the new most constrained digit and fill that one next. That is as human as it gets</li>
+  <li>Try an adaptive ordering for constraints. Choose the constraint with the least unfilled digits, fill it in completely, then select the next constraint with the least unfilled digits.</li>
+  <li>Try looking ahead: whenever a digit is filled, check what are the remaining possibilities for other digits. If no possibilities remain for at least one other digit, then this arrangement is already wrong.</li>
+</ul>
+
+<p>The code for the current solution can be found in <a href="https://github.com/aleksejs-fomins/SudokuSolver">this</a> repository.</p>
+
+<p>Thanks to everybody who read and enjoyed this brief execrise. Stay tuned for more sudoku posts in the future.</p>]]></content><author><name>Aleksejs Fomins</name></author><category term="Meta" /><category term="Sudoku" /><category term="Python" /><category term="Optimization" /><summary type="html"><![CDATA[As an avid sudoku enthusiast, and a fan of Cracking The Cryptic, I frequently find myself needing a little boost from my external brain. So, why not use this as an opportunity to exercise some coding optimization skills as well. In this post, I will cover the generic sudoku solver. In the future posts, I will cover using quick code snippets to brute force through some smaller sub-problems.]]></summary></entry><entry><title type="html">Making this blog</title><link href="http://localhost:4000/meta/making-this-blog/" rel="alternate" type="text/html" title="Making this blog" /><published>2024-02-10T00:00:00+01:00</published><updated>2024-02-10T00:00:00+01:00</updated><id>http://localhost:4000/meta/making-this-blog</id><content type="html" xml:base="http://localhost:4000/meta/making-this-blog/"><![CDATA[<p>In this first post, I would like to give a detailed summary of the engineering behind this blog.</p>
 
 <h2 id="requirements">Requirements</h2>
 
@@ -47,93 +276,14 @@ head_scripts:
 
 <p>Here’s a Gauss’ law to celebrate this achievement</p>
 
-\[\iiint_V \nabla \cdot \vec{E}dV = \oint_S \vec{E}\cdot d\vec{S}\]]]></content><author><name>Aleksejs Fomins</name></author><category term="Meta" /><category term="Jekyll" /><category term="Github" /><summary type="html"><![CDATA[In this first post, I would like to give a detailed summary of the engineering behind this blog.]]></summary></entry><entry><title type="html">Edge Case: Nested and Mixed Lists</title><link href="http://localhost:4000/edge%20case/edge-case-nested-and-mixed-lists/" rel="alternate" type="text/html" title="Edge Case: Nested and Mixed Lists" /><published>2009-05-15T00:00:00+02:00</published><updated>2009-05-15T00:00:00+02:00</updated><id>http://localhost:4000/edge%20case/edge-case-nested-and-mixed-lists</id><content type="html" xml:base="http://localhost:4000/edge%20case/edge-case-nested-and-mixed-lists/"><![CDATA[<p>Nested and mixed lists are an interesting beast. It’s a corner case to make sure that</p>
+\[\iiint_V \nabla \cdot \vec{E}dV = \oint_S \vec{E}\cdot d\vec{S}\]
 
+<p>Here’s a list of other minor optimizations I have done by editing the config file:</p>
 <ul>
-  <li>Lists within lists do not break the ordered list numbering order</li>
-  <li>Your list styles go deep enough.</li>
+  <li>Selected the “dirt” theme</li>
+  <li>Added a path to the profile picture</li>
+  <li>Added the name of the blog</li>
+  <li>Added my bio, and a few links to other pages, such as my github and stackexchange.</li>
 </ul>
 
-<h3 id="ordered--unordered--ordered">Ordered – Unordered – Ordered</h3>
-
-<ol>
-  <li>ordered item</li>
-  <li>ordered item
-    <ul>
-      <li><strong>unordered</strong></li>
-      <li><strong>unordered</strong>
-        <ol>
-          <li>ordered item</li>
-          <li>ordered item</li>
-        </ol>
-      </li>
-    </ul>
-  </li>
-  <li>ordered item</li>
-  <li>ordered item</li>
-</ol>
-
-<h3 id="ordered--unordered--unordered">Ordered – Unordered – Unordered</h3>
-
-<ol>
-  <li>ordered item</li>
-  <li>ordered item
-    <ul>
-      <li><strong>unordered</strong></li>
-      <li><strong>unordered</strong>
-        <ul>
-          <li>unordered item</li>
-          <li>unordered item</li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-  <li>ordered item</li>
-  <li>ordered item</li>
-</ol>
-
-<h3 id="unordered--ordered--unordered">Unordered – Ordered – Unordered</h3>
-
-<ul>
-  <li>unordered item</li>
-  <li>unordered item
-    <ol>
-      <li>ordered</li>
-      <li>ordered
-        <ul>
-          <li>unordered item</li>
-          <li>unordered item</li>
-        </ul>
-      </li>
-    </ol>
-  </li>
-  <li>unordered item</li>
-  <li>unordered item</li>
-</ul>
-
-<h3 id="unordered--unordered--ordered">Unordered – Unordered – Ordered</h3>
-
-<ul>
-  <li>unordered item</li>
-  <li>unordered item
-    <ul>
-      <li>unordered</li>
-      <li>unordered
-        <ol>
-          <li><strong>ordered item</strong></li>
-          <li><strong>ordered item</strong></li>
-        </ol>
-      </li>
-    </ul>
-  </li>
-  <li>unordered item</li>
-  <li>unordered item</li>
-</ul>
-
-<h3 id="task-lists">Task Lists</h3>
-
-<ul class="task-list">
-  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" checked="checked" />Finish my changes</li>
-  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Push my commits to GitHub</li>
-  <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Open a pull request</li>
-</ul>]]></content><author><name>Aleksejs Fomins</name></author><category term="Edge Case" /><category term="content" /><category term="css" /><category term="edge case" /><category term="lists" /><category term="markup" /><summary type="html"><![CDATA[Nested and mixed lists are an interesting beast. It’s a corner case to make sure that]]></summary></entry></feed>
+<p>By the way, I had noticed that the theme was pulling the logos of the websites for links from <a href="https://fontawesome.com/v5/search?q=stackexchange&amp;o=r">this awesome website</a> as font characters. Since StackExchange was not in the theme by default, it just took a few clicks on the FontAwesome website to find the correct logo and import the corresponding text.</p>]]></content><author><name>Aleksejs Fomins</name></author><category term="Meta" /><category term="Jekyll" /><category term="Github" /><summary type="html"><![CDATA[In this first post, I would like to give a detailed summary of the engineering behind this blog.]]></summary></entry></feed>
