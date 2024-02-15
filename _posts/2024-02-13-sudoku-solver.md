@@ -232,14 +232,23 @@ We also have 5 different example sudoku puzzles
 
 In the below table I show the average runtime in seconds for each solver and each problem. For the V3, I give the 90% confidence interval out of 50 different runs.
 
+||V1|V2|V3|V4|
+|Easy1|0.25|0.22|0.9-30.0|0.23|
+|Easy2|0.22|0.20|Did not test|0.20|
+|Medium1|0.42|0.24|Did not test|0.22|
+|Medium2|1.56|0.43|Did not test|7.07|
+|Hard1|61.35|10.50|Did not test|3.43|
+
 We can make the following observations:
-* V2 indeed performs better than V1, but the improvement factor is less than 9, since we also spend time on reading the puzzle from file and initializing the solver.
+* V2 indeed performs better than V1, but the improvement factor is less than 9, since we also spend time on reading the puzzle from file and initializing the solver. There is no improvement whatsoever for easy problems, likely because the solution part is significantly smaller than the other parts of the program.
 * Somewhat surprisingly, V3 performs orders of magnitude worse than V2, or even V1. So the initial arrangement of doing empty cells in sequence is not random at all. It seems that the proximity of cells matters for the order the are filled in.
 * V4 is far better than V2 for the hard problem, but far worse for the medium problem. We are clearly onto something with this heuristic, but it is also clear that this heuristic is not the right one.
 
+This is where we confirm our initial hypothesis that we would require far more example sudoku puzzles to check how well our solvers compare on average.
+
 ## Conclusion
 
-We were able to write a sudoku solver can solve a hard classical sudoku puzzles in 10s, which is feasible for daily use. Yay!
+We were able to write a sudoku solver can solve a hard classical sudoku puzzles in less than 10s, which is feasible for daily use. Yay!
 
 The job is certainly not finished yet. We need to figure out the secret of the order of brute-forcing, try some other techniques, and maybe some other sudoku like killer sudoku! Here are the a few ideas I would try from the top of my head:
 * Try an adaptive ordering, where, after filling each digit, we find the new most constrained digit and fill that one next. That is as human as it gets

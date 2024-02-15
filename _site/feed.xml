@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-02-13T15:18:07+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Data Adventures</title><subtitle>In this blog I will write about my adventures related to software development, statistics, data science, research, and similar. Will cover both hobby projects and actual work in the public domain.</subtitle><author><name>Aleksejs Fomins</name></author><entry><title type="html">Optimizing an automated sudoku solver in Python</title><link href="http://localhost:4000/meta/sudoku-solver/" rel="alternate" type="text/html" title="Optimizing an automated sudoku solver in Python" /><published>2024-02-13T00:00:00+01:00</published><updated>2024-02-13T00:00:00+01:00</updated><id>http://localhost:4000/meta/sudoku-solver</id><content type="html" xml:base="http://localhost:4000/meta/sudoku-solver/"><![CDATA[<p>As an avid sudoku enthusiast, and a fan of <a href="https://www.youtube.com/c/CrackingTheCryptic">Cracking The Cryptic</a>, I frequently find myself needing a little boost from my external brain. So, why not use this as an opportunity to exercise some coding optimization skills as well. In this post, I will cover the generic sudoku solver. In the future posts, I will cover using quick code snippets to brute force through some smaller sub-problems.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-02-14T00:17:58+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Data Adventures</title><subtitle>In this blog I will write about my adventures related to software development, statistics, data science, research, and similar. Will cover both hobby projects and actual work in the public domain.</subtitle><author><name>Aleksejs Fomins</name></author><entry><title type="html">Optimizing an automated sudoku solver in Python</title><link href="http://localhost:4000/meta/sudoku-solver/" rel="alternate" type="text/html" title="Optimizing an automated sudoku solver in Python" /><published>2024-02-13T00:00:00+01:00</published><updated>2024-02-13T00:00:00+01:00</updated><id>http://localhost:4000/meta/sudoku-solver</id><content type="html" xml:base="http://localhost:4000/meta/sudoku-solver/"><![CDATA[<p>As an avid sudoku enthusiast, and a fan of <a href="https://www.youtube.com/c/CrackingTheCryptic">Cracking The Cryptic</a>, I frequently find myself needing a little boost from my external brain. So, why not use this as an opportunity to exercise some coding optimization skills as well. In this post, I will cover the generic sudoku solver. In the future posts, I will cover using quick code snippets to brute force through some smaller sub-problems.</p>
 
 <h2 id="the-setting">The Setting</h2>
 
@@ -207,16 +207,65 @@
 
 <p>In the below table I show the average runtime in seconds for each solver and each problem. For the V3, I give the 90% confidence interval out of 50 different runs.</p>
 
+<table>
+  <tbody>
+    <tr>
+      <td> </td>
+      <td>V1</td>
+      <td>V2</td>
+      <td>V3</td>
+      <td>V4</td>
+    </tr>
+    <tr>
+      <td>Easy1</td>
+      <td>0.25</td>
+      <td>0.22</td>
+      <td>0.9-30.0</td>
+      <td>0.23</td>
+    </tr>
+    <tr>
+      <td>Easy2</td>
+      <td>0.22</td>
+      <td>0.20</td>
+      <td>Did not test</td>
+      <td>0.20</td>
+    </tr>
+    <tr>
+      <td>Medium1</td>
+      <td>0.42</td>
+      <td>0.24</td>
+      <td>Did not test</td>
+      <td>0.22</td>
+    </tr>
+    <tr>
+      <td>Medium2</td>
+      <td>1.56</td>
+      <td>0.43</td>
+      <td>Did not test</td>
+      <td>7.07</td>
+    </tr>
+    <tr>
+      <td>Hard1</td>
+      <td>61.35</td>
+      <td>10.50</td>
+      <td>Did not test</td>
+      <td>3.43</td>
+    </tr>
+  </tbody>
+</table>
+
 <p>We can make the following observations:</p>
 <ul>
-  <li>V2 indeed performs better than V1, but the improvement factor is less than 9, since we also spend time on reading the puzzle from file and initializing the solver.</li>
+  <li>V2 indeed performs better than V1, but the improvement factor is less than 9, since we also spend time on reading the puzzle from file and initializing the solver. There is no improvement whatsoever for easy problems, likely because the solution part is significantly smaller than the other parts of the program.</li>
   <li>Somewhat surprisingly, V3 performs orders of magnitude worse than V2, or even V1. So the initial arrangement of doing empty cells in sequence is not random at all. It seems that the proximity of cells matters for the order the are filled in.</li>
   <li>V4 is far better than V2 for the hard problem, but far worse for the medium problem. We are clearly onto something with this heuristic, but it is also clear that this heuristic is not the right one.</li>
 </ul>
 
+<p>This is where we confirm our initial hypothesis that we would require far more example sudoku puzzles to check how well our solvers compare on average.</p>
+
 <h2 id="conclusion">Conclusion</h2>
 
-<p>We were able to write a sudoku solver can solve a hard classical sudoku puzzles in 10s, which is feasible for daily use. Yay!</p>
+<p>We were able to write a sudoku solver can solve a hard classical sudoku puzzles in less than 10s, which is feasible for daily use. Yay!</p>
 
 <p>The job is certainly not finished yet. We need to figure out the secret of the order of brute-forcing, try some other techniques, and maybe some other sudoku like killer sudoku! Here are the a few ideas I would try from the top of my head:</p>
 <ul>
@@ -237,7 +286,13 @@
 
 \[E = mc^2\]
 
-<p>Thirdly, as much of my work is coding in various languages (mostly Python recently), it would make sense to be able to have inline <strong>code snippets</strong>.</p>
+<p>Thirdly, as much of my work is coding in various languages (mostly Python recently), it would make sense to be able to have inline <strong>code snippets</strong>. Whenever possible, with syntax highlighting for nicer readability</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">field</span><span class="p">&gt;</span>
+<span class="n">field</span> <span class="nf">max</span><span class="p">(</span><span class="n">field</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">,</span> <span class="n">field</span> <span class="o">&amp;</span><span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="n">b</span> <span class="o">?</span> <span class="n">a</span> <span class="o">:</span> <span class="n">b</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
 
 <p>Finally, eventually I would like the ability to itegrate <strong>dynamic figures</strong>, i.e. interactive dashboards and plots.</p>
 
@@ -286,4 +341,47 @@ head_scripts:
   <li>Added my bio, and a few links to other pages, such as my github and stackexchange.</li>
 </ul>
 
-<p>By the way, I had noticed that the theme was pulling the logos of the websites for links from <a href="https://fontawesome.com/v5/search?q=stackexchange&amp;o=r">this awesome website</a> as font characters. Since StackExchange was not in the theme by default, it just took a few clicks on the FontAwesome website to find the correct logo and import the corresponding text.</p>]]></content><author><name>Aleksejs Fomins</name></author><category term="Meta" /><category term="Jekyll" /><category term="Github" /><summary type="html"><![CDATA[In this first post, I would like to give a detailed summary of the engineering behind this blog.]]></summary></entry></feed>
+<p>By the way, I had noticed that the theme was pulling the logos of the websites for links from <a href="https://fontawesome.com/v5/search?q=stackexchange&amp;o=r">this awesome website</a> as font characters. Since StackExchange was not in the theme by default, it just took a few clicks on the FontAwesome website to find the correct logo and import the corresponding text.</p>]]></content><author><name>Aleksejs Fomins</name></author><category term="Meta" /><category term="Jekyll" /><category term="Github" /><summary type="html"><![CDATA[In this first post, I would like to give a detailed summary of the engineering behind this blog.]]></summary></entry><entry><title type="html">A critique of psychometrics</title><link href="http://localhost:4000/meta/is-psychometrics-a-science/" rel="alternate" type="text/html" title="A critique of psychometrics" /><published>2023-12-20T00:00:00+01:00</published><updated>2023-12-20T00:00:00+01:00</updated><id>http://localhost:4000/meta/is-psychometrics-a-science</id><content type="html" xml:base="http://localhost:4000/meta/is-psychometrics-a-science/"><![CDATA[<p>Recently I have briefly worked in psychometrics, on the task of measuring a concept related to human well-being. Reading in detail about a dozen publications in the field has left me utterly puzzled. I am unable to establish a bridge between the scientific method I was trained in as a physicist, and the practices employed in psychometric research. In this post I attempt to structure my confused thoughts, and present, as clearly as I can, the questions that I am unable to find the answer to. For some of the questions I struggle to see how they can have an answer</p>
+
+<h2 id="what-is-psychometrics">What is psychometrics</h2>
+
+<h2 id="what-is-the-typical-procedure-employed-in-psychometrics">What is the typical procedure employed in psychometrics</h2>
+
+<p>There is a large demand for measuring quantities related to human health and intelligence. This may include, for example, general health, severity of a mental disorder, general intelligence (e.g. IQ), or skill in a certain specialized discipline, such as calculus or art history of the 16th century. It is then the task of a psychometrist to construct and test a metric that would measure the quantity of interest. As far as I have understood, modern psychometrists use the following procedure to construct a measure they are interested in:</p>
+
+<ol>
+  <li>Existence of a <strong>latent construct</strong> is assumed - a scalar latent variable which quantifies the concept of interest. This variable is assumed to be monotonic: lower or greater value of this variable would imply that the person is more or less depressed, more or less healthy, more or less intelligent, depending on the measurement objective.</li>
+  <li>A <strong>survey</strong> of a few dosen questions is assembled to assess <em>assess the latent construct</em>. In other words, it is assumed that the answers to the questions in such a survey are in a monotonic relationship with the latent variable. For example, the question “Rate 1-10 how hard it is for you to get out of bed in the morning” could be used to assess depressiveness, under the assumption that higher depressiveness would generally result in higher difficulty of getting out of bed, and thus higher-valued answer to this question.
+    <ul>
+      <li>Multiple questions are used, as individual answers may be noisy, and individual questions may be selective only in some range of the latent variable. For example, a question to compute “2+2*2” would be useful to detect people who have not studied at primary school, but would not be useful at distinguishing the skill of trained mathematicians, as all of them would answer the question correctly, given enough motivation to do so.</li>
+    </ul>
+  </li>
+  <li>The researcher would assume a <strong>statistical model</strong>, linking a person’s latent construct value to the probabilities of different answers that person might choose when filling the survey. A typical model used for this purpose is the <a href="https://en.wikipedia.org/wiki/Rasch_model">Rasch model</a> and its extensions. Given the person’s latent construct variable, and a difficulty parameter of the question, the model would provide a probability distribution of all possible answers to that question by that person.</li>
+  <li>A survey is conducted, <strong>collecting answers</strong> from multiple participants. Question answers from all participants are collected into a single dataset.</li>
+  <li>The selected <strong>model is fitted</strong> to the dataset, simultaneously estimating latent variables for each person, and question-specific parameters (such as difficulty).</li>
+  <li>The individual <strong>latent variables are reported</strong> on the same scale. Since, for example, a depressiveness of 5.3 may be hard to interpret, the latent values are frequently reported as quantiles within the general population. This may be written as “person A is among the 10% most depressive people”, or “among the 20% least depressive people”.</li>
+</ol>
+
+<h2 id="how-and-how-precisely-are-the-measurement-targets-typically-defined">How and how precisely are the measurement targets typically defined?</h2>
+
+<p>In order to measure something, it needs to first be defined. AFAIK, concepts of interest to psychometricians, such as depression, health, or intelligence have reasonably vague definitions. How do psychometricians justify trying to make precise measurements of quantities that do not have precise definitions?</p>
+
+<h2 id="how-is-unidimensionality-of-the-construct-assessed-what-are-the-typical-assessement-outcomes">How is unidimensionality of the construct assessed? What are the typical assessement outcomes?</h2>
+
+<p>In order for it to be meaningful to measure the latent construct with a scalar variable, it must be demonstrated that that the construct is unidimensional. In other words, a single scalar variable is sufficient to describe individual differences in regard to this construct. Mathematicians have a handy tool for checking if objects can be placed on a monotonic unidimensional scale: if, for any three objects, it is possible to order those objects in the order from lowest to highest value of the latent variable, then the variable is unidimensional. For example, obesity as measured by percent body fat is a unidimensional construct - any number of people can be unambiguously sorted with regards to such a metric. However, diet quality is not a unidimensional construct. It is not possible to objectively order people who have severe caloric deficiency, iron deficiency and B-vitamin deficiency respectively in the order from best to worst diet quality. This indicates that calories, minerals and vitamins are different dimensions of diet quality, and diet quality is thus a multidimensional construct.</p>
+
+<h2 id="how-is-the-validity-of-the-questions-assessed-what-are-the-typical-assessment-outcomes">How is the validity of the questions assessed? What are the typical assessment outcomes?</h2>
+
+<p>This question really has two parts:</p>
+<ol>
+  <li>Are the answers to the question at all related to the latent construct? Do these quantities co-vary?</li>
+  <li>How strongly is the question related to the latent construct? How strongly are they confounded by sources unrelated to the latent construct?</li>
+</ol>
+
+<p>I am tempted to immediately answer that the validity of such questions cannot be assessed, as it is unclear to me, how a question can be demonstrated to measure a certain quantity, when that quantity is loosely defined at best, or defined through the very same questions at worst. However, the field of psychometrics has invested a large amount of effort in establishing good practices on how such questions are to be selected and tuned, so we might as well take a look.</p>
+
+<p>Next, let us have a look how psychometrics deals with confounding variables. First, let me indulge a little in brainstorming what these confounding variables could be. Some people might not answer the questions truthfully. Some people may be in a bad mood. Some people may feel differently about their experience in different parts of the day. Some may not be able to describe the experience well or consistently. Note that these are mostly related to the measurement of health, and to a far lesser extent to the measurement of intelligence. It is not unreasonable to assume that having only one correct answer and a strong incentive to answer correctly would naturally act to reduce the confounding in the case of IQ.</p>
+
+<h2 id="how-are-the-statistical-models-validated">How are the statistical models validated?</h2>
+
+<p>Do psychometricians justify the choice of their model, outside of the model itself? It fits, after a bit of tweaking. Ok, so what? Fitness alone is not meaningful. Importantly, any residual variance not fitted by the model is assumed to be noise. But what if it is not? There needs to be at least some amount of mechanistic understanding as to why a given model should be meaningful in explaining the process in question. Is this ever done?</p>]]></content><author><name>Aleksejs Fomins</name></author><category term="Meta" /><category term="Psychometrics" /><category term="Science" /><category term="Opinion" /><summary type="html"><![CDATA[Recently I have briefly worked in psychometrics, on the task of measuring a concept related to human well-being. Reading in detail about a dozen publications in the field has left me utterly puzzled. I am unable to establish a bridge between the scientific method I was trained in as a physicist, and the practices employed in psychometric research. In this post I attempt to structure my confused thoughts, and present, as clearly as I can, the questions that I am unable to find the answer to. For some of the questions I struggle to see how they can have an answer]]></summary></entry></feed>

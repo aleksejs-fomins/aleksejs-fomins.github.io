@@ -26,7 +26,14 @@ Secondly, I lot of the topics of interest to me are science related, and thus be
 
 $$E = mc^2$$
 
-Thirdly, as much of my work is coding in various languages (mostly Python recently), it would make sense to be able to have inline **code snippets**.
+Thirdly, as much of my work is coding in various languages (mostly Python recently), it would make sense to be able to have inline **code snippets**. Whenever possible, with syntax highlighting for nicer readability
+
+```c++
+template <typename field>
+field max(field &a, field &b) {
+    return a > b ? a : b;
+}
+```
 
 Finally, eventually I would like the ability to itegrate **dynamic figures**, i.e. interactive dashboards and plots.
 
